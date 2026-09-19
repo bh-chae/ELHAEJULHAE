@@ -1,56 +1,77 @@
 /**
- * OnboardingPage Step 3: D-Day 선택
- * - D-Day 타입 선택 (배란일, 시술일, 이식일)
- * - D-Day 날짜 입력 (E3)
+ * OnboardingPage Step 3: D-Day 목표 설정
+ * - 임신준비 방법에 따라 다른 목표 선택지 제공
+ * - 자연임신: 배란일
+ * - 인공수정: 배란일, 정자채취, 인공수정
+ * - 체외수정: 난자채취, 정액채취, 배아이식
+ * - 직접입력: 사용자 정의 목표
  */
 
 import React from 'react';
-import { DDayType, DDayName } from '../../types';
+import { PregnancyStage } from '../../types';
 
 interface Step3Props {
-  ddayType?: DDayType;
-  ddayDate?: string;
-  onNext: (data: { ddayType: DDayType; ddayDate: string }) => void;
+  stage?: PregnancyStage;
+  selectedGoal?: string;
+  goalDate?: string;
+  onNext: (data: { goal: string; goalDate: string }) => void;
   onPrev: () => void;
 }
 
-export function Step3({ ddayType, ddayDate, onNext, onPrev }: Step3Props) {
-  const [selectedType, setSelectedType] = React.useState<DDayType | undefined>(ddayType);
-  const [selectedDate, setSelectedDate] = React.useState(ddayDate || '');
+export function Step3({ stage, selectedGoal, goalDate, onNext, onPrev }: Step3Props) {
+  const [goal, setGoal] = React.useState(selectedGoal || '');
+  const [goalDateValue, setGoalDateValue] = React.useState(goalDate || '');
+  const [customGoal, setCustomGoal] = React.useState('');
   const [error, setError] = React.useState('');
 
-  const ddayInfo: Record<
-    DDayType,
-    { name: DDayName; emoji: string; description: string }
-  > = {
-    natural: { name: '배란일', emoji: '🌙', description: '자연임신 준비' },
-    artificial: { name: '시술일', emoji: '💉', description: '인공수정 예정' },
-    ivf: { name: '이식일', emoji: '🥚', description: '시험관아기 이식일' },
+  // 단계별 목표 선택지
+  const goalOptions: Record<PregnancyStage, { value: string; label: string; emoji: string }[]> = {
+    natural: [
+      { value: 'ovulation', label: '배란일', emoji: '🌙' },
+    ],
+    artificial: [
+      { value: 'ovulation', label: '배란일', emoji: '🌙' },
+      { value: 'sperm_collection', label: '정자채취', emoji: '💙' },
+      { value: 'insemination', label: '인공수정', emoji: '✨' },
+    ],
+    ivf: [
+      { value: 'egg_retrieval', label: '난자채취', emoji: '🥚' },
+      { value: 'sperm_collection', label: '정액채취', emoji: '💙' },
+      { value: 'embryo_transfer', label: '배아이식', emoji: '🌱' },
+    ],
   };
+
+  const currentOptions = stage ? goalOptions[stage] : [];
+  const isCustom = goal === 'custom';
 
   const handleNext = () => {
     setError('');
 
-    if (!selectedType) {
-      setError('D-Day 타입을 선택해주세요');
+    if (!goal) {
+      setError('목표를 선택해주세요');
       return;
     }
 
-    if (!selectedDate) {
-      setError('D-Day 날짜를 입력해주세요');
+    if (isCustom && !customGoal.trim()) {
+      setError('목표를 입력해주세요');
+      return;
+    }
+
+    if (!goalDateValue) {
+      setError('목표 날짜를 입력해주세요');
       return;
     }
 
     // 미래 날짜 확인
     const today = new Date().toISOString().split('T')[0];
-    if (selectedDate < today) {
+    if (goalDateValue < today) {
       setError('미래 날짜를 선택해주세요');
       return;
     }
 
     onNext({
-      ddayType: selectedType,
-      ddayDate: selectedDate,
+      goal: isCustom ? customGoal.trim() : goal,
+      goalDate: goalDateValue,
     });
   };
 
@@ -62,50 +83,82 @@ export function Step3({ ddayType, ddayDate, onNext, onPrev }: Step3Props) {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
-  const daysUntil = calcDaysUntil(selectedDate);
+  const daysUntil = calcDaysUntil(goalDateValue);
+  const goalLabel = isCustom
+    ? customGoal
+    : currentOptions.find(o => o.value === goal)?.label || '';
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>📅 D-Day 설정</h2>
-      <p style={styles.subtitle}>목표 날짜를 설정해주세요</p>
+      <h2 style={styles.title}>🎯 목표 설정</h2>
+      <p style={styles.subtitle}>
+        {stage === 'natural' && '배란일을 중심으로 준비해보세요'}
+        {stage === 'artificial' && '인공수정 과정 중 목표를 선택하세요'}
+        {stage === 'ivf' && '체외수정 과정 중 목표를 선택하세요'}
+      </p>
 
-      {/* D-Day 타입 선택 */}
+      {/* 목표 선택 */}
       <div style={styles.section}>
-        <label style={styles.label}>D-Day 타입</label>
-        <div style={styles.typeGroup}>
-          {(Object.keys(ddayInfo) as DDayType[]).map((type) => {
-            const info = ddayInfo[type];
-            return (
-              <button
-                key={type}
-                onClick={() => setSelectedType(type)}
-                style={{
-                  ...styles.typeButton,
-                  ...(selectedType === type ? styles.typeButtonSelected : {}),
-                }}
-              >
-                <div style={styles.typeEmoji}>{info.emoji}</div>
-                <div style={styles.typeName}>{info.name}</div>
-                <div style={styles.typeDesc}>{info.description}</div>
-              </button>
-            );
-          })}
+        <label style={styles.label}>목표</label>
+        <div style={styles.goalGroup}>
+          {currentOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => {
+                setGoal(option.value);
+                setCustomGoal('');
+              }}
+              style={{
+                ...styles.goalButton,
+                ...(goal === option.value ? styles.goalButtonSelected : {}),
+              }}
+            >
+              <div style={styles.goalEmoji}>{option.emoji}</div>
+              <div style={styles.goalName}>{option.label}</div>
+            </button>
+          ))}
+
+          {/* 직접입력 옵션 */}
+          <button
+            onClick={() => setGoal('custom')}
+            style={{
+              ...styles.goalButton,
+              ...(isCustom ? styles.goalButtonSelected : {}),
+            }}
+          >
+            <div style={styles.goalEmoji}>✏️</div>
+            <div style={styles.goalName}>직접입력</div>
+          </button>
         </div>
       </div>
 
-      {/* D-Day 날짜 입력 */}
+      {/* 직접입력 필드 */}
+      {isCustom && (
+        <div style={styles.section}>
+          <label style={styles.label}>목표 입력</label>
+          <input
+            type="text"
+            placeholder="예: 착상, 임신확인, 첫 검진 등"
+            value={customGoal}
+            onChange={(e) => setCustomGoal(e.target.value)}
+            style={styles.input}
+          />
+        </div>
+      )}
+
+      {/* 날짜 입력 */}
       <div style={styles.section}>
         <label style={styles.label}>목표 날짜</label>
         <input
           type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
+          value={goalDateValue}
+          onChange={(e) => setGoalDateValue(e.target.value)}
           style={styles.input}
         />
-        {selectedDate && (
-          <div style={styles.ddayInfo}>
-            <p style={styles.ddayDate}>
-              {new Date(selectedDate).toLocaleDateString('ko-KR', {
+        {goalDateValue && (
+          <div style={styles.dateInfo}>
+            <p style={styles.dateLabel}>
+              {new Date(goalDateValue).toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -113,29 +166,24 @@ export function Step3({ ddayType, ddayDate, onNext, onPrev }: Step3Props) {
               })}
             </p>
             {daysUntil > 0 && (
-              <p style={styles.ddayCountdown}>
-                🎯 {daysUntil}일 남았습니다!
+              <p style={styles.daysUntil}>
+                {goalLabel}까지 {daysUntil}일 남았습니다! ⏰
               </p>
             )}
           </div>
         )}
       </div>
 
-      {/* 설명 */}
-      {selectedType && (
-        <div style={styles.infoBox}>
-          <div style={styles.infoTitle}>
-            {selectedType === 'natural' && '자연임신 준비'}
-            {selectedType === 'artificial' && '인공수정 준비'}
-            {selectedType === 'ivf' && '시험관아기 준비'}
-          </div>
-          <p style={styles.infoText}>
-            {selectedType === 'natural' &&
-              '배란일을 중심으로 추천 활동과 투두를 제안해드릴게요'}
-            {selectedType === 'artificial' &&
-              '시술일 전후로 필요한 준비 사항들을 관리해보세요'}
-            {selectedType === 'ivf' &&
-              '이식일 기준으로 맞춤형 건강 관리를 시작하세요'}
+      {/* 요약 */}
+      {goal && goalDateValue && (
+        <div style={styles.summaryBox}>
+          <div style={styles.summaryTitle}>📍 목표 요약</div>
+          <p style={styles.summaryText}>
+            {goalLabel} <br />
+            {new Date(goalDateValue).toLocaleDateString('ko-KR', {
+              month: 'short',
+              day: 'numeric',
+            })}
           </p>
         </div>
       )}
@@ -181,12 +229,12 @@ const styles = {
     fontWeight: 'bold',
     marginBottom: '10px',
   } as const,
-  typeGroup: {
+  goalGroup: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
     gap: '10px',
   } as const,
-  typeButton: {
+  goalButton: {
     padding: '15px',
     border: '2px solid #ddd',
     borderRadius: '8px',
@@ -195,22 +243,17 @@ const styles = {
     transition: 'all 0.2s',
     textAlign: 'center',
   } as const,
-  typeButtonSelected: {
+  goalButtonSelected: {
     borderColor: '#4CAF50',
     backgroundColor: '#f1f8f4',
   } as const,
-  typeEmoji: {
+  goalEmoji: {
     fontSize: '28px',
     marginBottom: '5px',
   } as const,
-  typeName: {
-    fontSize: '13px',
+  goalName: {
+    fontSize: '12px',
     fontWeight: 'bold',
-    marginBottom: '3px',
-  } as const,
-  typeDesc: {
-    fontSize: '11px',
-    color: '#999',
   } as const,
   input: {
     width: '100%',
@@ -220,40 +263,40 @@ const styles = {
     fontSize: '14px',
     boxSizing: 'border-box',
   } as const,
-  ddayInfo: {
+  dateInfo: {
     marginTop: '10px',
     padding: '10px',
     backgroundColor: '#f9f9f9',
     borderRadius: '4px',
   } as const,
-  ddayDate: {
+  dateLabel: {
     fontSize: '13px',
     color: '#333',
     margin: '0 0 5px 0',
   } as const,
-  ddayCountdown: {
+  daysUntil: {
     fontSize: '14px',
     fontWeight: 'bold',
     color: '#4CAF50',
     margin: 0,
   } as const,
-  infoBox: {
+  summaryBox: {
     padding: '15px',
     backgroundColor: '#e8f5e9',
     borderRadius: '8px',
     marginBottom: '20px',
   } as const,
-  infoTitle: {
+  summaryTitle: {
     fontSize: '13px',
     fontWeight: 'bold',
     color: '#2e7d32',
     marginBottom: '8px',
   } as const,
-  infoText: {
-    fontSize: '12px',
+  summaryText: {
+    fontSize: '14px',
     color: '#388e3c',
     margin: 0,
-    lineHeight: '1.4',
+    lineHeight: '1.5',
   } as const,
   error: {
     color: '#d32f2f',

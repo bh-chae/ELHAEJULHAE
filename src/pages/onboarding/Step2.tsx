@@ -8,6 +8,7 @@ import React from 'react';
 import { AppMode, Gender } from '../../types';
 
 interface Step2Props {
+  userGender?: Gender;
   mode?: AppMode;
   partnerGender?: Gender;
   partnerBirthDate?: string;
@@ -20,6 +21,7 @@ interface Step2Props {
 }
 
 export function Step2({
+  userGender,
   mode,
   partnerGender,
   partnerBirthDate,
@@ -30,6 +32,12 @@ export function Step2({
   const [pGender, setPGender] = React.useState<Gender | undefined>(partnerGender);
   const [pBirthDate, setPBirthDate] = React.useState(partnerBirthDate || '');
   const [error, setError] = React.useState('');
+
+  // 짝꿍 성별은 사용자 성별의 반대
+  const oppositeGender: Gender | undefined =
+    userGender === 'female' ? 'male' :
+    userGender === 'male' ? 'female' :
+    undefined;
 
   const handleNext = () => {
     setError('');
@@ -98,21 +106,38 @@ export function Step2({
 
           {/* 성별 */}
           <div style={styles.section}>
-            <label style={styles.label}>성별</label>
+            <label style={styles.label}>
+              성별
+              {oppositeGender && (
+                <span style={{ fontSize: '12px', color: '#666', marginLeft: '5px' }}>
+                  ({oppositeGender === 'female' ? '여성' : '남성'}만 선택 가능)
+                </span>
+              )}
+            </label>
             <div style={styles.genderGroup}>
-              {(['female', 'male'] as const).map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setPGender(g)}
-                  style={{
-                    ...styles.genderButton,
-                    ...(pGender === g ? styles.genderButtonSelected : {}),
-                  }}
-                >
-                  {g === 'female' ? '👩 여성' : '👨 남성'}
-                </button>
-              ))}
+              {(['female', 'male'] as const).map((g) => {
+                const isDisabled = oppositeGender && g !== oppositeGender;
+                return (
+                  <button
+                    key={g}
+                    onClick={() => !isDisabled && setPGender(g)}
+                    disabled={isDisabled}
+                    style={{
+                      ...styles.genderButton,
+                      ...(pGender === g ? styles.genderButtonSelected : {}),
+                      ...(isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+                    }}
+                  >
+                    {g === 'female' ? '👩 여성' : '👨 남성'}
+                  </button>
+                );
+              })}
             </div>
+            {oppositeGender && (
+              <p style={styles.hint}>
+                당신이 {userGender === 'female' ? '여성' : '남성'}이므로, 짝꿍은 자동으로 {oppositeGender === 'female' ? '여성' : '남성'}으로 설정됩니다
+              </p>
+            )}
           </div>
 
           {/* 생년월일 */}

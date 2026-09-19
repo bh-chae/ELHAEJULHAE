@@ -37,8 +37,8 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [partnerBirthDate, setPartnerBirthDate] = React.useState<string>();
 
   // Step 3
-  const [ddayType, setDDayType] = React.useState<DDayType | undefined>();
-  const [ddayDate, setDDayDate] = React.useState<string>();
+  const [goalName, setGoalName] = React.useState<string>();
+  const [goalDate, setGoalDate] = React.useState<string>();
 
   // Step 4
   const [defaultView, setDefaultView] = React.useState<'month' | 'week' | 'day'>('month');
@@ -140,9 +140,9 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   };
 
   // Step 3 완료
-  const handleStep3Next = (data: { ddayType: DDayType; ddayDate: string }) => {
-    setDDayType(data.ddayType);
-    setDDayDate(data.ddayDate);
+  const handleStep3Next = (data: { goal: string; goalDate: string }) => {
+    setGoalName(data.goal);
+    setGoalDate(data.goalDate);
     saveProgress(4);
   };
 
@@ -151,9 +151,9 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
     setDefaultView(view);
 
     // 온보딩 완료 처리
-    if (gender && birthDate && stage && ddayType && ddayDate) {
+    if (gender && birthDate && stage && goalDate) {
       // User, DDay, Character 생성 및 저장
-      StorageService.completeOnboarding(gender, birthDate, stage, ddayDate);
+      StorageService.completeOnboarding(gender, birthDate, stage, goalDate);
 
       // 짝꿍 정보 저장 (커플 모드)
       if (mode === 'couple' && partnerGender && partnerBirthDate) {
@@ -195,6 +195,7 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
       {step === 2 && (
         <Step2
+          userGender={gender}
           mode={mode}
           partnerGender={partnerGender}
           partnerBirthDate={partnerBirthDate}
@@ -205,8 +206,9 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
 
       {step === 3 && (
         <Step3
-          ddayType={ddayType}
-          ddayDate={ddayDate}
+          stage={stage}
+          selectedGoal={goalName}
+          goalDate={goalDate}
           onNext={handleStep3Next}
           onPrev={() => saveProgress(2)}
         />
