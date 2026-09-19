@@ -197,7 +197,41 @@ export interface Character {
 export type OnboardingStep = 1 | 2 | 3 | 4;
 
 /**
- * 온보딩 데이터 (임시 저장)
+ * 온보딩 단계별 데이터
+ */
+export interface OnboardingStepData {
+  gender?: Gender;
+  birthDate?: string;
+  stage?: PregnancyStage;
+  completedAt?: string;
+}
+
+/**
+ * 온보딩 진행 상태 (E2)
+ */
+export interface OnboardingProgress {
+  id: string;
+  step1?: OnboardingStepData;  // Step 1: 개인정보
+  step2?: {
+    mode?: AppMode;
+    partner?: Partner;
+    completedAt?: string;
+  };
+  step3?: {
+    type?: DDayType;
+    targetDate?: string;
+    completedAt?: string;
+  };
+  step4?: {
+    selectedView?: 'month' | 'week' | 'day';
+    completedAt?: string;
+  };
+  createdAt: string;
+  deletedAt?: string;
+}
+
+/**
+ * 온보딩 데이터 (임시 저장 - 호환성)
  */
 export interface OnboardingData {
   step: OnboardingStep;
@@ -315,6 +349,7 @@ export interface ApiResponse<T> {
 // ============================================================================
 
 export const STORAGE_KEYS = {
+  VERSION: 'elhaejulhae_version',
   USER: 'elhaejulhae_user',
   PARTNER: 'elhaejulhae_partner',
   CHARACTER: 'elhaejulhae_character',
@@ -324,7 +359,8 @@ export const STORAGE_KEYS = {
   DDAY: 'elhaejulhae_dday',
   MODE: 'elhaejulhae_mode',
   DEFAULT_VIEW: 'elhaejulhae_defaultView',
-  ONBOARDING: 'elhaejulhae_onboarding',
+  ONBOARDING_PROGRESS: 'elhaejulhae_onboardingProgress',
+  LAST_UPDATED: 'elhaejulhae_lastUpdated',
 } as const;
 
 // ============================================================================
